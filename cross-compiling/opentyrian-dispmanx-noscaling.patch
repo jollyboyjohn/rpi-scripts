@@ -1,0 +1,117 @@
+diff -urN opentyrian-2.1.20130907/Makefile opentyrian-2.1.20130907.new/Makefile
+--- opentyrian-2.1.20130907/Makefile	2013-09-08 00:57:24.000000000 +0100
++++ opentyrian-2.1.20130907.new/Makefile	2015-09-02 00:46:43.864991571 +0100
+@@ -5,10 +5,11 @@
+ else
+     PLATFORM := UNIX
+ endif
++PLATFORM := RPI
+ 
+ TARGET := opentyrian
+ 
+-WITH_NETWORK := true
++WITH_NETWORK := false
+ 
+ ############################################################
+ 
+diff -urN opentyrian-2.1.20130907/src/opentyr.c opentyrian-2.1.20130907.new/src/opentyr.c
+--- opentyrian-2.1.20130907/src/opentyr.c	2013-09-08 00:57:23.000000000 +0100
++++ opentyrian-2.1.20130907.new/src/opentyr.c	2015-09-02 00:02:35.778013409 +0100
+@@ -89,7 +89,11 @@
+ 	{
+ 		false,
+ 		!can_init_any_scaler(false) || !can_init_any_scaler(true),
++#ifdef TARGET_RPI
++		true,
++#else 
+ 		false,
++#endif
+ 		// false,
+ 		false,
+ 		false,
+diff -urN opentyrian-2.1.20130907/src/video.c opentyrian-2.1.20130907.new/src/video.c
+--- opentyrian-2.1.20130907/src/video.c	2013-09-07 23:14:33.000000000 +0100
++++ opentyrian-2.1.20130907.new/src/video.c	2015-09-02 00:15:06.260665831 +0100
+@@ -96,7 +96,11 @@
+ {
+ 	int w = scalers[new_scaler].width,
+ 	    h = scalers[new_scaler].height;
++#ifdef TARGET_RPI
++	int bpp = 16;
++#else
+ 	int bpp = can_init_scaler(new_scaler, fullscreen);
++#endif
+ 	int flags = SDL_SWSURFACE | SDL_HWPALETTE | (fullscreen ? SDL_FULLSCREEN : 0);
+ 	
+ 	if (bpp == 0)
+diff -urN opentyrian-2.1.20130907/src/video_scale.c opentyrian-2.1.20130907.new/src/video_scale.c
+--- opentyrian-2.1.20130907/src/video_scale.c	2013-09-07 23:14:33.000000000 +0100
++++ opentyrian-2.1.20130907.new/src/video_scale.c	2015-09-02 00:26:26.920828276 +0100
+@@ -31,6 +31,7 @@
+ static void nn_32( SDL_Surface *src_surface, SDL_Surface *dst_surface );
+ static void nn_16( SDL_Surface *src_surface, SDL_Surface *dst_surface );
+ 
++#ifndef TARGET_RPI
+ static void scale2x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface );
+ static void scale2x_16( SDL_Surface *src_surface, SDL_Surface *dst_surface );
+ static void scale3x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface );
+@@ -39,6 +40,7 @@
+ void hq2x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface );
+ void hq3x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface );
+ void hq4x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface );
++#endif
+ 
+ uint scaler;
+ 
+@@ -46,6 +48,8 @@
+ {
+ #if defined(TARGET_GP2X) || defined(TARGET_DINGUX)
+ 	{ 320,           240,            no_scale, nn_16,      nn_32,      "None" },
++#elif defined(TARGET_RPI)
++	{ 320,           208,            no_scale, nn_16,      nn_32,      "DISPMANX" },
+ #else
+ 	{ 1 * vga_width, 1 * vga_height, no_scale, nn_16,      nn_32,      "None" },
+ 	{ 2 * vga_width, 2 * vga_height, NULL,     nn_16,      nn_32,      "2x" },
+@@ -72,7 +76,7 @@
+ 	}
+ }
+ 
+-#if defined(TARGET_GP2X) || defined(TARGET_DINGUX)
++#if defined(TARGET_GP2X) || defined(TARGET_DINGUX) || defined(TARGET_RPI)
+ #define VGA_CENTERED
+ #endif
+ 
+@@ -194,7 +198,7 @@
+ #endif
+ }
+ 
+-
++#ifndef TARGET_RPI
+ void scale2x_32( SDL_Surface *src_surface, SDL_Surface *dst_surface )
+ {
+ 	Uint8 *src = src_surface->pixels, *src_temp,
+@@ -435,4 +439,4 @@
+ 		dst = dst_temp + 3 * dst_pitch;
+ 	}
+ }
+-
++#endif
+diff -urN opentyrian-2.1.20130907/src/video_scale_hqNx.c opentyrian-2.1.20130907.new/src/video_scale_hqNx.c
+--- opentyrian-2.1.20130907/src/video_scale_hqNx.c	2013-09-08 00:57:23.000000000 +0100
++++ opentyrian-2.1.20130907.new/src/video_scale_hqNx.c	2015-09-02 00:43:33.385798628 +0100
+@@ -19,7 +19,7 @@
+  * along with this program; if not, write to the Free Software
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+  */
+-
++#ifndef TARGET_RPI
+ #include "palette.h"
+ #include "video.h"
+ 
+@@ -11892,5 +11892,5 @@
+ 		dst = dst_temp + 4 * dst_pitch;
+ 	}
+ }
+-
++#endif
+ // kate: tab-width 4; vim: set noet:
